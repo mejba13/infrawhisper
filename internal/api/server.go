@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrawhisper/infrawhisper/internal/api/handlers"
 	"github.com/infrawhisper/infrawhisper/internal/api/middleware"
+	"github.com/infrawhisper/infrawhisper/internal/api/ws"
 	"github.com/infrawhisper/infrawhisper/internal/auth"
 	chstore "github.com/infrawhisper/infrawhisper/internal/storage/clickhouse"
 	pgstore "github.com/infrawhisper/infrawhisper/internal/storage/postgres"
@@ -50,6 +51,9 @@ func NewServer(port string, deps Deps) *Server {
 		AIEngineURL: deps.AIEngineURL,
 	}
 
+	hub := ws.NewHub(deps.Redis, deps.Logger)
+	go hub.Run()
+
 	r.Get("/health", handlers.Health)
 	r.Get("/ready", handlers.Ready(deps.PG, deps.CH, deps.Redis))
 
@@ -72,6 +76,10 @@ func NewServer(port string, deps Deps) *Server {
 		})
 		r.Post("/webhooks", h.HandleWebhook)
 	})
+
+	r.Get("/ws/metrics", hub.ServeMetrics)
+	r.Get("/ws/logs", hub.ServeLogs)
+	r.Get("/ws/alerts", hub.ServeAlerts)
 
 	return &Server{
 		srv: &http.Server{

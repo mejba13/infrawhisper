@@ -4,39 +4,87 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**InfraWhisper** — early-stage Python 3.12 project. The Product Requirements Document is at `InfraWhisper_PRD_v1.0.docx`. No source code beyond the PyCharm stub in `main.py` exists yet.
+**InfraWhisper** — AI-powered Kubernetes infrastructure observability SaaS. Go monorepo with Python AI engine and Next.js dashboard (to be added in sub-projects B–D).
 
-## Setup
+## Go Module
 
-No package management is configured yet. When dependencies are added, prefer `pyproject.toml` (PEP 517/518) with a tool like Poetry or uv.
+Module: `github.com/infrawhisper/infrawhisper`
+Go: 1.23.4+
 
-Suggested initial setup:
+## Build Commands
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt   # once created
+# Build all binaries
+make build
+
+# Build individual binary
+go build -o bin/api-server ./cmd/api-server/
+go build -o bin/collector ./cmd/collector/
+go build -o bin/stream-processor ./cmd/stream-processor/
+
+# Run with hot reload (requires air)
+make dev
+
+# Run tests
+go test ./... -race -cover
+
+# Lint
+golangci-lint run ./...
+
+# Tidy dependencies
+go mod tidy
 ```
 
-## Development Commands
-
-These will be established as the project matures. Likely conventions for a Python project:
+## Local Dev Setup
 
 ```bash
-# Run the app
-python main.py
+# One-command setup
+bash scripts/dev-setup.sh
 
-# Run tests (once pytest is added)
-pytest
-pytest tests/test_foo.py::test_specific  # single test
+# Start dependencies
+make docker-up
 
-# Lint / format (Black is configured in the IDE)
-black .
-ruff check .
+# Start API server
+make dev
 ```
 
 ## Architecture
 
-No architecture exists yet. As the project is built out, document the structure here. Key decisions to capture:
-- Entry point location (`main.py` or `src/infrawhisper/__main__.py`)
-- Packaging structure (flat vs `src/` layout)
-- Key external integrations described in the PRD
+### Binaries (`cmd/`)
+- `api-server` — HTTP REST API (chi) + WebSocket hub. Port 8080.
+- `collector` — OTLP gRPC receiver (port 4317) → ClickHouse + Kafka
+- `stream-processor` — Kafka consumer → anomaly detection + alert evaluation + Redis pub/sub
+
+### Internal Packages (`internal/`)
+- `config/` — Viper config loading from env vars / .env file
+- `auth/` — JWT sign/verify, RBAC role hierarchy, context helpers
+- `api/server.go` — chi router wiring, graceful shutdown
+- `api/handlers/` — REST handlers (one file per resource)
+- `api/middleware/` — auth, CORS, rate limit, request logging
+- `api/ws/` — WebSocket hub backed by Redis pub/sub
+- `collector/` — OTLP receiver, processor, Kafka exporter, tail sampler
+- `stream/` — Kafka consumer/producer, Welford anomaly detector, metric aggregator, alert evaluator
+- `storage/postgres/` — pgx pool, golang-migrate, CRUD for clusters/incidents/alerts/users
+- `storage/clickhouse/` — batch insert + query for metrics/logs/traces/costs
+- `storage/redis/` — cache get/set/del, pub/sub
+
+### Data Flow
+```
+K8s Nodes → Rust Agent → OTLP gRPC → collector → ClickHouse (raw)
+                                               └→ Kafka → stream-processor → anomaly/alert
+                                                                           └→ Redis pub/sub → WebSocket → Dashboard
+REST clients → api-server → Postgres (metadata) / ClickHouse (queries) / Redis (cache)
+```
+
+### Storage
+- **Postgres** — clusters, tenants, users, incidents, alert_rules, alert_events
+- **ClickHouse** — metrics (30d TTL), logs (7d TTL), traces (7d TTL), costs
+- **Redis** — query cache, real-time pub/sub for WebSocket feeds
+- **Kafka** — topics: `infrawhisper.metrics`, `infrawhisper.logs`, `infrawhisper.traces`
+
+## Conventions
+- Dependency injection throughout — no global state
+- All errors wrapped with `fmt.Errorf("context: %w", err)`
+- Handlers return `{"error": "message"}` JSON with appropriate HTTP status
+- Tenant isolation enforced at every storage query
+- Context propagated to all storage calls for cancellation/tracing

@@ -46,17 +46,24 @@ func (db *DB) GetCluster(ctx context.Context, id, tenantID string) (*Cluster, er
 }
 
 func (db *DB) CreateCluster(ctx context.Context, c *Cluster) error {
-	return db.Pool.QueryRow(ctx,
+	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO clusters (tenant_id, name, provider, region, k8s_version)
 		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, agent_token`,
 		c.TenantID, c.Name, c.Provider, c.Region, c.K8sVersion,
 	).Scan(&c.ID, &c.AgentToken)
+	if err != nil {
+		return fmt.Errorf("create cluster: %w", err)
+	}
+	return nil
 }
 
 func (db *DB) UpdateClusterStatus(ctx context.Context, id string, status string, nodeCount int) error {
 	_, err := db.Pool.Exec(ctx,
 		`UPDATE clusters SET status = $1, node_count = $2, updated_at = NOW() WHERE id = $3`,
 		status, nodeCount, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("update cluster status: %w", err)
+	}
+	return nil
 }

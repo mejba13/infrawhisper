@@ -32,15 +32,22 @@ func (db *DB) ListAlertRules(ctx context.Context, tenantID string) ([]AlertRule,
 }
 
 func (db *DB) CreateAlertRule(ctx context.Context, r *AlertRule) error {
-	return db.Pool.QueryRow(ctx,
+	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO alert_rules (tenant_id, cluster_id, name, description, condition, severity, channels)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 		r.TenantID, r.ClusterID, r.Name, r.Description, r.Condition, r.Severity, r.Channels,
 	).Scan(&r.ID)
+	if err != nil {
+		return fmt.Errorf("create alert rule: %w", err)
+	}
+	return nil
 }
 
 func (db *DB) DeleteAlertRule(ctx context.Context, id, tenantID string) error {
 	_, err := db.Pool.Exec(ctx,
 		`DELETE FROM alert_rules WHERE id = $1 AND tenant_id = $2`, id, tenantID)
-	return err
+	if err != nil {
+		return fmt.Errorf("delete alert rule: %w", err)
+	}
+	return nil
 }

@@ -34,11 +34,14 @@ jobs:
           - name: dashboard
             dockerfile: dashboard/Dockerfile
             context: ./dashboard
+          - name: agent
+            dockerfile: agent/Dockerfile
+            context: ./agent
     steps:
       - uses: actions/checkout@v4
 
       - name: Install librdkafka (for Go CGO builds)
-        if: "!contains(matrix.service.name, 'ai-engine') && !contains(matrix.service.name, 'dashboard')"
+        if: "!contains(matrix.service.name, 'ai-engine') && !contains(matrix.service.name, 'dashboard') && !contains(matrix.service.name, 'agent')"
         run: sudo apt-get install -y librdkafka-dev
 
       - name: Log in to GHCR

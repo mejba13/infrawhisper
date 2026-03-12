@@ -115,3 +115,21 @@ secrets:
   postgresPassword: ""
   anthropicApiKey: ""
   jwtSecret: "change-me-in-production"
+  clusterId: ""
+  tenantId: ""
+  agentToken: ""
+
+agent:
+  enabled: true
+  image:
+    repository: ghcr.io/infrawhisper/agent
+    tag: latest
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  scrapeIntervalSecs: "15"
+  logLevel: info

@@ -1,0 +1,56 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: infrawhisper-agent
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  selector:
+    matchLabels:
+      app: infrawhisper-agent
+  template:
+    metadata:
+      labels:
+        app: infrawhisper-agent
+        {{- include "infrawhisper.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: infrawhisper-agent
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: agent
+          image: {{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          env:
+            - name: CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: infrawhisper-secrets
+                  key: CLUSTER_ID
+                  optional: true
+            - name: TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: infrawhisper-secrets
+                  key: TENANT_ID
+                  optional: true
+            - name: AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: infrawhisper-secrets
+                  key: AGENT_TOKEN
+                  optional: true
+            - name: COLLECTOR_ENDPOINT
+              value: "http://collector.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.collector.service.port }}"
+            - name: SCRAPE_INTERVAL_SECS
+              value: {{ .Values.agent.scrapeIntervalSecs | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.agent.logLevel | quote }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+{{- end }}

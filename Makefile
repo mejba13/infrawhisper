@@ -1,4 +1,4 @@
-.PHONY: dev build test lint clean migrate docker-up docker-down tidy
+.PHONY: dev build test lint clean migrate docker-up docker-down tidy docker-build-go helm-lint helm-template helm-install-local helm-uninstall agent-build agent-check
 
 GO := go
 GOFLAGS := -ldflags="-s -w"
@@ -37,3 +37,29 @@ clean:
 tidy:
 	$(GO) mod tidy
 	$(GO) mod verify
+
+# Docker image builds
+docker-build-go:
+	docker build -f Dockerfile.api-server -t infrawhisper/api-server:local .
+	docker build -f Dockerfile.collector -t infrawhisper/collector:local .
+	docker build -f Dockerfile.stream-processor -t infrawhisper/stream-processor:local .
+
+# Helm
+helm-lint:
+	helm lint deploy/helm/infrawhisper/
+
+helm-template:
+	helm template infrawhisper deploy/helm/infrawhisper/ --debug
+
+helm-install-local:
+	bash deploy/k8s/orbstack-init.sh
+
+helm-uninstall:
+	helm uninstall infrawhisper --namespace infrawhisper
+
+# Rust agent
+agent-build:
+	cd agent && cargo build
+
+agent-check:
+	cd agent && cargo check

@@ -1,5 +1,6 @@
 mod collector;
 mod config;
+mod metrics_api;
 mod watcher;
 
 use anyhow::Result;
@@ -20,11 +21,12 @@ async fn main() -> Result<()> {
         "InfraWhisper agent starting"
     );
 
-    let collector = collector::OtlpCollector::new(&cfg);
-    collector.init().await?;
+    let collector = collector::OtlpCollector::new(&cfg)?;
 
     let watcher = watcher::PodWatcher::new(&cfg);
     watcher.run(&collector).await?;
+
+    collector.shutdown();
 
     Ok(())
 }

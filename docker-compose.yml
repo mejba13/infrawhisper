@@ -68,6 +68,23 @@ services:
       timeout: 10s
       retries: 10
 
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_DATABASE: infrawhisper
+      API_URL: http://api-server:8080
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   clickhouse_data:

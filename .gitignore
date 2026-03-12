@@ -6,3 +6,9 @@ vendor/
 *.test
 coverage.out
 tmp/
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+.pytest_cache/

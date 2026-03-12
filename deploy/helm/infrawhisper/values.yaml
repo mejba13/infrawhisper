@@ -1,0 +1,117 @@
+global:
+  image:
+    registry: ghcr.io/infrawhisper
+    pullPolicy: IfNotPresent
+  namespace: infrawhisper
+
+apiServer:
+  image:
+    repository: ghcr.io/infrawhisper/api-server
+    tag: latest
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  port: 8080
+  service:
+    type: ClusterIP
+    port: 8080
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+collector:
+  image:
+    repository: ghcr.io/infrawhisper/collector
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  port: 4317
+  service:
+    type: ClusterIP
+    port: 4317
+
+streamProcessor:
+  image:
+    repository: ghcr.io/infrawhisper/stream-processor
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+dashboard:
+  image:
+    repository: ghcr.io/infrawhisper/dashboard
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  port: 3000
+  service:
+    type: ClusterIP
+    port: 3000
+
+aiEngine:
+  image:
+    repository: ghcr.io/infrawhisper/ai-engine
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  port: 8001
+  service:
+    type: ClusterIP
+    port: 8001
+
+ingress:
+  enabled: true
+  className: nginx
+  host: infrawhisper.local
+  tls:
+    enabled: false
+    secretName: infrawhisper-tls
+
+config:
+  postgresHost: postgres
+  postgresPort: "5432"
+  postgresDb: infrawhisper
+  postgresUser: infrawhisper
+  clickhouseHost: clickhouse
+  clickhousePort: "9000"
+  clickhouseDb: infrawhisper
+  redisAddr: "redis:6379"
+  kafkaBrokers: "kafka:29092"
+  logLevel: info
+  aiEngineUrl: "http://ai-engine:8001"
+
+secrets:
+  postgresPassword: ""
+  anthropicApiKey: ""
+  jwtSecret: "change-me-in-production"

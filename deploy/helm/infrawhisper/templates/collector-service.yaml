@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: collector
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.collector.service.type }}
+  selector:
+    app: collector
+  ports:
+    - name: otlp-grpc
+      port: {{ .Values.collector.service.port }}
+      targetPort: otlp-grpc

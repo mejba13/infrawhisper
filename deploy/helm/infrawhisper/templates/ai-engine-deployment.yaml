@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-engine
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-engine
+spec:
+  replicas: {{ .Values.aiEngine.replicas }}
+  selector:
+    matchLabels:
+      app: ai-engine
+  template:
+    metadata:
+      labels:
+        app: ai-engine
+    spec:
+      serviceAccountName: infrawhisper
+      containers:
+        - name: ai-engine
+          image: {{ .Values.aiEngine.image.repository }}:{{ .Values.aiEngine.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.aiEngine.port }}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: infrawhisper-config
+            - secretRef:
+                name: infrawhisper-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.aiEngine.resources | nindent 12 }}

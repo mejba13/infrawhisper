@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-server
+spec:
+  replicas: {{ .Values.apiServer.replicas }}
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+        {{- include "infrawhisper.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: infrawhisper
+      containers:
+        - name: api-server
+          image: {{ .Values.apiServer.image.repository }}:{{ .Values.apiServer.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.apiServer.port }}
+              name: http
+          envFrom:
+            - configMapRef:
+                name: infrawhisper-config
+            - secretRef:
+                name: infrawhisper-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.apiServer.resources | nindent 12 }}

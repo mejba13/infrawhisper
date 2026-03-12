@@ -1,0 +1,12 @@
+apiVersion: v2
+name: infrawhisper
+description: AI-powered Kubernetes observability SaaS
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - observability
+  - kubernetes
+  - ai
+maintainers:
+  - name: InfraWhisper Team

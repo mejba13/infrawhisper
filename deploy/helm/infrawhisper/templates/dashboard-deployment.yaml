@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+spec:
+  replicas: {{ .Values.dashboard.replicas }}
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: {{ .Values.dashboard.image.repository }}:{{ .Values.dashboard.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.dashboard.port }}
+              name: http
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://api-server:{{ .Values.apiServer.service.port }}"
+            - name: NEXT_PUBLIC_WS_URL
+              value: "ws://api-server:{{ .Values.apiServer.service.port }}"
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}

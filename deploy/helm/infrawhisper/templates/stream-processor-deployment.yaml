@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-processor
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: stream-processor
+spec:
+  replicas: {{ .Values.streamProcessor.replicas }}
+  selector:
+    matchLabels:
+      app: stream-processor
+  template:
+    metadata:
+      labels:
+        app: stream-processor
+    spec:
+      serviceAccountName: infrawhisper
+      containers:
+        - name: stream-processor
+          image: {{ .Values.streamProcessor.image.repository }}:{{ .Values.streamProcessor.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          envFrom:
+            - configMapRef:
+                name: infrawhisper-config
+            - secretRef:
+                name: infrawhisper-secrets
+          resources:
+            {{- toYaml .Values.streamProcessor.resources | nindent 12 }}

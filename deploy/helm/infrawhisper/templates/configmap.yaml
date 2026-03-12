@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infrawhisper-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+data:
+  POSTGRES_HOST: {{ .Values.config.postgresHost | quote }}
+  POSTGRES_PORT: {{ .Values.config.postgresPort | quote }}
+  POSTGRES_DB: {{ .Values.config.postgresDb | quote }}
+  POSTGRES_USER: {{ .Values.config.postgresUser | quote }}
+  CLICKHOUSE_HOST: {{ .Values.config.clickhouseHost | quote }}
+  CLICKHOUSE_PORT: {{ .Values.config.clickhousePort | quote }}
+  CLICKHOUSE_DATABASE: {{ .Values.config.clickhouseDb | quote }}
+  REDIS_ADDR: {{ .Values.config.redisAddr | quote }}
+  KAFKA_BROKERS: {{ .Values.config.kafkaBrokers | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  AI_ENGINE_URL: {{ .Values.config.aiEngineUrl | quote }}

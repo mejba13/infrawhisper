@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collector
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "infrawhisper.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  replicas: {{ .Values.collector.replicas }}
+  selector:
+    matchLabels:
+      app: collector
+  template:
+    metadata:
+      labels:
+        app: collector
+    spec:
+      serviceAccountName: infrawhisper
+      containers:
+        - name: collector
+          image: {{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag }}
+          imagePullPolicy: {{ include "infrawhisper.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.collector.port }}
+              name: otlp-grpc
+          envFrom:
+            - configMapRef:
+                name: infrawhisper-config
+            - secretRef:
+                name: infrawhisper-secrets
+          resources:
+            {{- toYaml .Values.collector.resources | nindent 12 }}

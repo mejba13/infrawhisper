@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 )
 
@@ -55,7 +56,7 @@ func Load() (*Config, error) {
 	v.SetDefault("PORT", "8080")
 	v.SetDefault("ENV", "development")
 	v.SetDefault("POSTGRES_DSN", "postgres://infrawhisper:infrawhisper@localhost:5432/infrawhisper?sslmode=disable")
-	v.SetDefault("CLICKHOUSE_DSN", "clickhouse://localhost:9000/infrawhisper")
+	v.SetDefault("CLICKHOUSE_DSN", "clickhouse://infrawhisper:infrawhisper@localhost:9000/infrawhisper")
 	v.SetDefault("REDIS_ADDR", "localhost:6379")
 	v.SetDefault("KAFKA_BROKERS", []string{"localhost:9092"})
 	v.SetDefault("KAFKA_GROUP_ID", "infrawhisper")
@@ -64,7 +65,12 @@ func Load() (*Config, error) {
 	_ = v.ReadInConfig()
 
 	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
+	if err := v.Unmarshal(&cfg, func(dc *mapstructure.DecoderConfig) {
+		dc.DecodeHook = mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToSliceHookFunc(","),
+			dc.DecodeHook,
+		)
+	}); err != nil {
 		return nil, fmt.Errorf("config unmarshal: %w", err)
 	}
 	return &cfg, nil

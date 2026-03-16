@@ -13,3 +13,12 @@ __pycache__/
 dist/
 .pytest_cache/
 agent/target/
+
+# Compiled binaries in project root
+/api-server
+/collector
+/stream-processor
+
+# Node
+node_modules/
+.next/

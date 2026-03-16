@@ -24,13 +24,29 @@ export function Modal({
 
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className={cn("relative z-10 w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl", className)}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
-            <X size={18} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
+      <div className="absolute inset-0" style={{ background: 'rgba(0 0 0 / 0.7)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
+      <div
+        className={cn("relative z-10 w-full max-w-lg p-6 animate-fade-in-scale", className)}
+        style={{
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 hover:scale-105 focus-ring"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <X size={16} />
           </button>
         </div>
         {children}

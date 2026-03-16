@@ -3,11 +3,25 @@ import { forwardRef } from "react"
 
 type Variant = "primary" | "secondary" | "ghost" | "danger"
 
-const variants: Record<Variant, string> = {
-  primary: "bg-blue-600 hover:bg-blue-500 text-white",
-  secondary: "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700",
-  ghost: "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200",
-  danger: "bg-red-900/50 hover:bg-red-800 text-red-400 border border-red-800",
+const variantStyles: Record<Variant, React.CSSProperties> = {
+  primary: {
+    background: 'var(--accent)',
+    color: 'var(--text-inverse)',
+  },
+  secondary: {
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
+    border: '1px solid var(--border-default)',
+  },
+  ghost: {
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+  },
+  danger: {
+    background: 'rgba(248 113 113 / 0.1)',
+    color: 'var(--status-critical)',
+    border: '1px solid rgba(248 113 113 / 0.2)',
+  },
 }
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -16,17 +30,25 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "secondary", size = "md", className, children, ...props }, ref) => {
-    const sizes = { sm: "px-2.5 py-1 text-xs", md: "px-3.5 py-1.5 text-sm", lg: "px-5 py-2.5 text-base" }
+  ({ variant = "secondary", size = "md", className, children, style, ...props }, ref) => {
+    const sizes = {
+      sm: "px-3 py-1.5 text-xs gap-1.5",
+      md: "px-4 py-2 text-sm gap-2",
+      lg: "px-6 py-3 text-sm gap-2"
+    }
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-          variants[variant],
+          "inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] focus-ring",
           sizes[size],
           className
         )}
+        style={{
+          borderRadius: 'var(--radius-md)',
+          ...variantStyles[variant],
+          ...style,
+        }}
         {...props}
       >
         {children}

@@ -4,7 +4,6 @@ export function Card({
   className,
   children,
   hover = false,
-  glow = false,
   style: extraStyle,
 }: {
   className?: string
@@ -16,17 +15,11 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] p-5 transition-all duration-300",
-        hover && "hover:translate-y-[-2px] hover:shadow-lg cursor-pointer",
-        glow && "animate-pulse-glow",
+        "rounded-xl bg-surface-raised border border-border-default p-5",
+        hover && "hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg cursor-pointer transition-all duration-200",
         className
       )}
-      style={{
-        background: 'var(--bg-elevated)',
-        border: '1px solid var(--border-subtle)',
-        boxShadow: 'var(--shadow-sm)',
-        ...extraStyle,
-      }}
+      style={extraStyle}
     >
       {children}
     </div>
@@ -45,12 +38,8 @@ export function CardHeader({
   return (
     <div className="mb-5 flex items-start justify-between">
       <div>
-        <h3 className="font-semibold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</p>
-        )}
+        <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">{title}</h3>
+        {subtitle && <p className="mt-1 text-[12px] text-text-muted">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -73,22 +62,21 @@ export function StatCard({
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium uppercase tracking-wider"
-          style={{ color: 'var(--text-tertiary)' }}>
-          {label}
-        </span>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ background: accent ? 'var(--accent-muted)' : 'var(--bg-hover)', color: accent ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</span>
+        <div className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-lg",
+          accent ? "bg-accent-dim text-accent" : "bg-surface-overlay text-text-muted"
+        )}>
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold tracking-tight"
-        style={{ color: accent ? 'var(--accent)' : 'var(--text-primary)' }}>
+      <div className={cn(
+        "text-[28px] font-bold tracking-tight leading-none",
+        accent ? "text-accent" : "text-text-primary"
+      )}>
         {value}
       </div>
-      {trend && (
-        <p className="mt-1 text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>{trend}</p>
-      )}
+      {trend && <p className="mt-2 text-[12px] font-medium text-text-muted">{trend}</p>}
     </Card>
   )
 }

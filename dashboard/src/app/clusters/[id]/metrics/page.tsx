@@ -5,6 +5,7 @@ import { Card, CardHeader } from "@/components/ui/Card"
 import { MetricChart } from "@/components/monitoring/MetricChart"
 import { useMetrics } from "@/hooks/useMetrics"
 import { Cpu, MemoryStick, Wifi, HardDrive } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function MetricsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -14,34 +15,24 @@ export default function MetricsPage({ params }: { params: Promise<{ id: string }
   const { data: disk } = useMetrics(id, "disk_io_read")
 
   const charts = [
-    { title: "CPU Usage", subtitle: "Average across all pods", data: cpu?.data ?? [], color: "#00d4aa", unit: "%", icon: <Cpu size={14} /> },
-    { title: "Memory Usage", subtitle: "Cluster memory consumption", data: mem?.data ?? [], color: "#60a5fa", unit: " MB", icon: <MemoryStick size={14} /> },
-    { title: "Network I/O", subtitle: "Inbound traffic (rx bytes)", data: net?.data ?? [], color: "#fbbf24", unit: " B", icon: <Wifi size={14} /> },
-    { title: "Disk I/O", subtitle: "Read operations", data: disk?.data ?? [], color: "#a78bfa", unit: " B/s", icon: <HardDrive size={14} /> },
+    { title: "CPU Usage", sub: "Average across all pods", data: cpu?.data ?? [], color: "#22d3a7", unit: "%", icon: <Cpu size={14} /> },
+    { title: "Memory Usage", sub: "Cluster memory consumption", data: mem?.data ?? [], color: "#60a5fa", unit: " MB", icon: <MemoryStick size={14} /> },
+    { title: "Network I/O", sub: "Inbound traffic (rx bytes)", data: net?.data ?? [], color: "#fbbf24", unit: " B", icon: <Wifi size={14} /> },
+    { title: "Disk I/O", sub: "Read operations", data: disk?.data ?? [], color: "#a78bfa", unit: " B/s", icon: <HardDrive size={14} /> },
   ]
 
   return (
     <PageShell title="Metrics" subtitle="Real-time cluster performance" clusterId={id}>
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {charts.map((chart, i) => (
-          <div key={chart.title} className={`animate-fade-in stagger-${i + 1}`}>
+        {charts.map((c, i) => (
+          <div key={c.title} className={cn("anim-fade-up", `delay-${i + 1}`)}>
             <Card>
               <CardHeader
-                title={chart.title}
-                subtitle={chart.subtitle}
-                action={
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg"
-                    style={{ background: 'var(--bg-hover)', color: 'var(--text-tertiary)' }}>
-                    {chart.icon}
-                  </div>
-                }
+                title={c.title}
+                subtitle={c.sub}
+                action={<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-overlay text-text-muted">{c.icon}</div>}
               />
-              <MetricChart
-                data={chart.data}
-                metricName={chart.title}
-                color={chart.color}
-                unit={chart.unit}
-              />
+              <MetricChart data={c.data} metricName={c.title} color={c.color} unit={c.unit} />
             </Card>
           </div>
         ))}

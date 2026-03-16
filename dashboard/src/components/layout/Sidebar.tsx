@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Server, Activity, FileText, GitBranch,
   AlertTriangle, DollarSign, Bell, MessageSquare, Settings,
-  Box, ChevronLeft
+  Box, ChevronLeft, Zap
 } from "lucide-react"
 
 const NAV_ITEMS = [
@@ -31,87 +31,64 @@ export function Sidebar({ clusterId }: { clusterId?: string }) {
   const items = clusterId ? CLUSTER_NAV(clusterId) : NAV_ITEMS
 
   return (
-    <aside className="flex h-full w-[220px] flex-col border-r"
-      style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
-
+    <aside className="flex h-full w-[232px] shrink-0 flex-col bg-surface-base border-r border-border-default">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="relative flex h-8 w-8 items-center justify-center rounded-lg animate-pulse-glow"
-          style={{ background: 'var(--accent-muted)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
+      <div className="flex items-center gap-3 px-5 h-16 border-b border-border-default">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-dim">
+          <Zap size={16} className="text-accent" />
         </div>
-        <div>
-          <span className="font-semibold text-sm tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        <div className="leading-tight">
+          <span className="block text-[14px] font-semibold tracking-tight text-text-primary">
             InfraWhisper
           </span>
-          <span className="block text-[10px] font-medium tracking-widest uppercase"
-            style={{ color: 'var(--accent)', opacity: 0.7 }}>
-            copilot
+          <span className="block text-[10px] font-semibold tracking-[0.12em] uppercase text-accent">
+            Copilot
           </span>
         </div>
       </div>
 
-      {/* Back to clusters */}
+      {/* Back link */}
       {clusterId && (
-        <Link href="/clusters"
-          className="flex items-center gap-2 px-5 py-3 text-xs font-medium transition-colors border-b"
-          style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }}>
+        <Link
+          href="/clusters"
+          className="flex items-center gap-2 px-5 py-3 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors border-b border-border-subtle"
+        >
           <ChevronLeft size={12} />
           All Clusters
         </Link>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-        {items.map(({ href, label, icon: Icon }, index) => {
-          const isActive = pathname === href
+      {/* Nav items */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+        {items.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200 animate-fade-in",
-                `stagger-${index + 1}`,
-                isActive
-                  ? "shadow-sm"
-                  : "hover:translate-x-0.5"
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150",
+                active
+                  ? "bg-accent-dim text-accent"
+                  : "text-text-secondary hover:bg-surface-hover hover:text-text-primary"
               )}
-              style={{
-                background: isActive ? 'var(--accent-muted)' : 'transparent',
-                color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'var(--bg-hover)'
-                  e.currentTarget.style.color = 'var(--text-primary)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = 'var(--text-secondary)'
-                }
-              }}
             >
-              <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} />
-              {label}
-              {isActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-              )}
+              <Icon size={16} strokeWidth={active ? 2 : 1.7} />
+              <span>{label}</span>
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />}
             </Link>
           )
         })}
       </nav>
 
-      {/* Footer status */}
-      <div className="px-5 py-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+      {/* Status footer */}
+      <div className="px-5 py-4 border-t border-border-default">
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: 'var(--status-healthy)' }} />
-          <span className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-            All systems operational
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-status-ok opacity-50" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-status-ok" />
           </span>
+          <span className="text-[11px] font-medium text-text-muted">All systems operational</span>
         </div>
       </div>
     </aside>

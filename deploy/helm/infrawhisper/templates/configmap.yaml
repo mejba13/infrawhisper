@@ -6,14 +6,22 @@ metadata:
   labels:
     {{- include "infrawhisper.labels" . | nindent 4 }}
 data:
+  POSTGRES_DSN: {{ printf "postgres://%s:%s@%s:%s/%s?sslmode=%s" .Values.config.postgresUser .Values.secrets.postgresPassword .Values.config.postgresHost .Values.config.postgresPort .Values.config.postgresDb .Values.config.postgresSslMode | quote }}
   POSTGRES_HOST: {{ .Values.config.postgresHost | quote }}
   POSTGRES_PORT: {{ .Values.config.postgresPort | quote }}
   POSTGRES_DB: {{ .Values.config.postgresDb | quote }}
   POSTGRES_USER: {{ .Values.config.postgresUser | quote }}
+  CLICKHOUSE_DSN: {{ printf "clickhouse://%s:%s@%s:%s/%s" .Values.config.clickhouseUser .Values.config.clickhousePassword .Values.config.clickhouseHost .Values.config.clickhousePort .Values.config.clickhouseDb | quote }}
   CLICKHOUSE_HOST: {{ .Values.config.clickhouseHost | quote }}
   CLICKHOUSE_PORT: {{ .Values.config.clickhousePort | quote }}
   CLICKHOUSE_DATABASE: {{ .Values.config.clickhouseDb | quote }}
+  CLICKHOUSE_USER: {{ .Values.config.clickhouseUser | quote }}
+  CLICKHOUSE_PASSWORD: {{ .Values.config.clickhousePassword | quote }}
   REDIS_ADDR: {{ .Values.config.redisAddr | quote }}
+  REDIS_PASSWORD: {{ .Values.config.redisPassword | quote }}
   KAFKA_BROKERS: {{ .Values.config.kafkaBrokers | quote }}
+  KAFKA_GROUP_ID: {{ .Values.config.kafkaGroupId | quote }}
+  JWT_ISSUER: {{ .Values.config.jwtIssuer | quote }}
   LOG_LEVEL: {{ .Values.config.logLevel | quote }}
   AI_ENGINE_URL: {{ .Values.config.aiEngineUrl | quote }}
+  API_URL: {{ printf "http://api-server:%v" .Values.apiServer.service.port | quote }}

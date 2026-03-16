@@ -15,15 +15,15 @@ kubectl config use-context orbstack
 
 echo "==> Creating namespace (idempotent)"
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace "$NAMESPACE" app.kubernetes.io/managed-by=Helm --overwrite
+kubectl annotate namespace "$NAMESPACE" meta.helm.sh/release-name="$RELEASE" --overwrite
+kubectl annotate namespace "$NAMESPACE" meta.helm.sh/release-namespace="$NAMESPACE" --overwrite
 
 echo "==> Installing nginx ingress controller (if not present)"
 if ! kubectl get ns ingress-nginx &>/dev/null; then
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
   echo "Waiting for ingress-nginx to be ready..."
-  kubectl wait --namespace ingress-nginx \
-    --for=condition=ready pod \
-    --selector=app.kubernetes.io/component=controller \
-    --timeout=120s
+  kubectl rollout status --namespace ingress-nginx deployment/ingress-nginx-controller --timeout=180s
 fi
 
 echo "==> Building local images"
@@ -39,18 +39,22 @@ echo "    OrbStack routes host.docker.internal -> host machine services."
 echo "    Ensure 'docker compose up -d' has been run before proceeding."
 
 echo "==> Installing/Upgrading Helm release"
+NODE_IP="$(kubectl get node -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' | awk '{print $1}')"
+echo "Using node IP for host dependencies: $NODE_IP"
 helm upgrade --install "$RELEASE" "$CHART" \
   --namespace "$NAMESPACE" \
   --set global.image.pullPolicy=Never \
+  --set agent.enabled=false \
+  --set apiServer.hpa.enabled=false \
   --set apiServer.image.tag=local \
   --set collector.image.tag=local \
   --set streamProcessor.image.tag=local \
   --set aiEngine.image.tag=local \
   --set dashboard.image.tag=local \
-  --set config.postgresHost=host.docker.internal \
-  --set config.clickhouseHost=host.docker.internal \
-  --set config.redisAddr="host.docker.internal:6379" \
-  --set config.kafkaBrokers="host.docker.internal:9092" \
+  --set config.postgresHost="$NODE_IP" \
+  --set config.clickhouseHost="$NODE_IP" \
+  --set config.redisAddr="$NODE_IP:6379" \
+  --set config.kafkaBrokers="$NODE_IP:9092" \
   --set secrets.postgresPassword=infrawhisper \
   --set secrets.jwtSecret=dev-jwt-secret-change-in-prod \
   --set ingress.host=infrawhisper.local \

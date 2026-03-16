@@ -103,11 +103,17 @@ config:
   postgresPort: "5432"
   postgresDb: infrawhisper
   postgresUser: infrawhisper
+  postgresSslMode: disable
   clickhouseHost: clickhouse
   clickhousePort: "9000"
   clickhouseDb: infrawhisper
+  clickhouseUser: infrawhisper
+  clickhousePassword: infrawhisper
   redisAddr: "redis:6379"
+  redisPassword: ""
   kafkaBrokers: "kafka:29092"
+  kafkaGroupId: infrawhisper
+  jwtIssuer: infrawhisper
   logLevel: info
   aiEngineUrl: "http://ai-engine:8001"
 

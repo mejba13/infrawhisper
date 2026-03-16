@@ -22,6 +22,8 @@ Real-time monitoring, anomaly detection, and intelligent alerting for Kubernetes
 
 Whether you're managing a single cluster or scaling across multiple environments, InfraWhisper gives you deep visibility into your infrastructure's health, performance, and cost.
 
+
+
 ---
 
 ## Key Features

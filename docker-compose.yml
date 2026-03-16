@@ -1,6 +1,69 @@
-version: "3.9"
-
 services:
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-server
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      ENV: development
+      POSTGRES_DSN: postgres://infrawhisper:infrawhisper@postgres:5432/infrawhisper?sslmode=disable
+      CLICKHOUSE_DSN: clickhouse://infrawhisper:infrawhisper@clickhouse:9000/infrawhisper
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_GROUP_ID: infrawhisper
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_ISSUER: infrawhisper
+      AI_ENGINE_URL: http://ai-engine:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  collector:
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    ports:
+      - "4317:4317"
+    environment:
+      CLICKHOUSE_DSN: clickhouse://infrawhisper:infrawhisper@clickhouse:9000/infrawhisper
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_GROUP_ID: infrawhisper
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  stream-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.stream-processor
+    environment:
+      CLICKHOUSE_DSN: clickhouse://infrawhisper:infrawhisper@clickhouse:9000/infrawhisper
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_GROUP_ID: infrawhisper
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -19,6 +82,10 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
+    environment:
+      CLICKHOUSE_DB: infrawhisper
+      CLICKHOUSE_USER: infrawhisper
+      CLICKHOUSE_PASSWORD: infrawhisper
     ports:
       - "9000:9000"
       - "8123:8123"
@@ -79,8 +146,12 @@ services:
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 9000
       CLICKHOUSE_DATABASE: infrawhisper
+      CLICKHOUSE_USER: infrawhisper
+      CLICKHOUSE_PASSWORD: infrawhisper
       API_URL: http://api-server:8080
     depends_on:
+      api-server:
+        condition: service_started
       clickhouse:
         condition: service_healthy
     restart: unless-stopped
@@ -92,9 +163,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://api-server:8080
-      NEXT_PUBLIC_WS_URL: ws://api-server:8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_WS_URL: ws://localhost:8080
     depends_on:
+      - api-server
       - ai-engine
     restart: unless-stopped
 

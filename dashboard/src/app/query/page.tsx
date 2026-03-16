@@ -113,11 +113,11 @@ export default function QueryPage() {
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder={clusterId ? "Ask about your infrastructure..." : "Select a cluster first"}
             disabled={!clusterId || isPending}
-            className="flex-1 px-5 py-3.5 text-sm rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-700 focus:outline-none disabled:opacity-40 transition-colors" />
+            className="flex-1 px-5 py-3.5 text-sm rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-500 focus:border-zinc-700 focus:outline-none disabled:opacity-40 transition-colors" />
           <button
             onClick={handleSend}
             disabled={!input.trim() || !clusterId || isPending}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-teal-500 text-zinc-950 hover:bg-teal-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold bg-teal-500 text-white hover:bg-teal-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             <Send size={16} />
             <span>Send</span>

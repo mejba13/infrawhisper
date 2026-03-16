@@ -14,5 +14,5 @@ CREATE TABLE IF NOT EXISTS infrawhisper.metrics (
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMMDD(timestamp)
 ORDER BY (cluster_id, metric_name, timestamp)
-TTL timestamp + INTERVAL 30 DAY
+TTL toDateTime(timestamp) + INTERVAL 30 DAY
 SETTINGS index_granularity = 8192

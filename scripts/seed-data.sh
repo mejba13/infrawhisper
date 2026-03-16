@@ -16,26 +16,21 @@ if [[ -f "$ENV_FILE" ]]; then
   source "$ENV_FILE"
 fi
 
-# ── Connection defaults ──────────────────────────────────────────────────────
-PG_DSN="${POSTGRES_DSN:-postgres://infrawhisper:infrawhisper@localhost:5432/infrawhisper?sslmode=disable}"
-CH_HOST="${CLICKHOUSE_HOST:-localhost}"
-CH_PORT="${CLICKHOUSE_PORT:-9000}"
-CH_DB="${CLICKHOUSE_DB:-infrawhisper}"
-CH_USER="${CLICKHOUSE_USER:-infrawhisper}"
-CH_PASS="${CLICKHOUSE_PASSWORD:-infrawhisper}"
+# ── Connection via docker exec ────────────────────────────────────────────────
+PG_CONTAINER="${PG_CONTAINER:-infrawhisper-postgres-1}"
+CH_CONTAINER="${CH_CONTAINER:-infrawhisper-clickhouse-1}"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 log() { printf '\033[1;34m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m  ! %s\033[0m\n' "$*"; }
 
 run_psql() {
-  psql "$PG_DSN" -v ON_ERROR_STOP=1 --quiet "$@"
+  docker exec -i "$PG_CONTAINER" psql -U infrawhisper -d infrawhisper -v ON_ERROR_STOP=1 --quiet "$@"
 }
 
 run_ch() {
-  clickhouse-client \
-    --host "$CH_HOST" --port "$CH_PORT" \
-    --database "$CH_DB" --user "$CH_USER" --password "$CH_PASS" \
+  docker exec -i "$CH_CONTAINER" clickhouse-client \
+    --database infrawhisper --user infrawhisper --password infrawhisper \
     --multiquery "$@"
 }
 
@@ -53,8 +48,8 @@ wait_for_service() {
   warn "$name did not become ready after $((retries * 2))s — continuing anyway."
 }
 
-wait_for_service "PostgreSQL" "psql '$PG_DSN' -c 'SELECT 1'"
-wait_for_service "ClickHouse" "run_ch --query 'SELECT 1'"
+wait_for_service "PostgreSQL" "docker exec $PG_CONTAINER pg_isready -U infrawhisper"
+wait_for_service "ClickHouse" "docker exec $CH_CONTAINER clickhouse-client --query 'SELECT 1'"
 
 ###############################################################################
 # ██████╗  ██████╗ ███████╗████████╗ ██████╗ ██████╗ ███████╗███████╗
@@ -351,31 +346,17 @@ run_ch --query "TRUNCATE TABLE IF EXISTS infrawhisper.costs"
 # a reasonable subset: each time point gets one row per (cluster, metric, pod/node).
 log "  Inserting metrics (48h, 5-minute intervals)..."
 
-run_ch <<'CHSQL'
--- We use numbers(576) to get 576 five-minute intervals = 48 hours.
--- For each interval we cross-join clusters, namespaces, pods, nodes, and metrics.
-
+# Insert each metric type separately to avoid ClickHouse CASE constant limitation
+insert_metric() {
+  local metric_name="$1" base="$2" range="$3"
+  run_ch <<CHSQL
 INSERT INTO infrawhisper.metrics
 SELECT
-    now() - toIntervalMinute(n.number * 5)                           AS timestamp,
-    cluster_id,
-    tenant_id,
-    namespace,
-    pod,
-    node,
-    pod                                                               AS container,
-    metric_name,
-    -- Generate a realistic value per metric with some variance
-    CASE metric_name
-        WHEN 'cpu_usage'        THEN 15 + (rand() % 70) + (IF(rand() % 100 < 5, 25, 0))
-        WHEN 'memory_usage'     THEN 200 + (rand() % 600)
-        WHEN 'network_rx_bytes' THEN 1000 + (rand() % 49000)
-        WHEN 'network_tx_bytes' THEN 500  + (rand() % 24500)
-        WHEN 'disk_io_read'     THEN 100  + (rand() % 4900)
-        WHEN 'disk_io_write'    THEN 50   + (rand() % 2950)
-        ELSE 0
-    END                                                               AS metric_value,
-    map('source', 'seed-script')                                      AS labels
+    now() - toIntervalMinute(n.number * 5)  AS timestamp,
+    cluster_id, tenant_id, namespace, pod, node, pod AS container,
+    '${metric_name}' AS metric_name,
+    ${base} + (rand() % ${range}) AS metric_value,
+    map('source', 'seed-script') AS labels
 FROM numbers(576) AS n
 CROSS JOIN (
     SELECT '11111111-1111-4111-a111-111111111111' AS cluster_id, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' AS tenant_id
@@ -384,35 +365,26 @@ CROSS JOIN (
     UNION ALL SELECT '44444444-4444-4444-a444-444444444444', 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 ) AS clusters
 CROSS JOIN (
-    SELECT 'default' AS namespace
-    UNION ALL SELECT 'kube-system'
-    UNION ALL SELECT 'production'
-    UNION ALL SELECT 'staging'
-    UNION ALL SELECT 'monitoring'
+    SELECT 'production' AS namespace UNION ALL SELECT 'staging'
+    UNION ALL SELECT 'kube-system' UNION ALL SELECT 'monitoring'
 ) AS ns
 CROSS JOIN (
     SELECT 'api-server' AS pod UNION ALL SELECT 'web-frontend'
-    UNION ALL SELECT 'auth-service'  UNION ALL SELECT 'payment-service'
-    UNION ALL SELECT 'worker'        UNION ALL SELECT 'cache-redis'
-    UNION ALL SELECT 'db-postgres'   UNION ALL SELECT 'kafka-broker'
-    UNION ALL SELECT 'monitoring-agent'
+    UNION ALL SELECT 'auth-service' UNION ALL SELECT 'worker'
 ) AS pods
 CROSS JOIN (
     SELECT 'worker-node-01' AS node UNION ALL SELECT 'worker-node-02'
-    UNION ALL SELECT 'worker-node-03' UNION ALL SELECT 'worker-node-04'
 ) AS nodes
-CROSS JOIN (
-    SELECT 'cpu_usage' AS metric_name
-    UNION ALL SELECT 'memory_usage'
-    UNION ALL SELECT 'network_rx_bytes'
-    UNION ALL SELECT 'network_tx_bytes'
-    UNION ALL SELECT 'disk_io_read'
-    UNION ALL SELECT 'disk_io_write'
-) AS metrics
--- Downsample: keep ~1/36 of the full cross product so we don't explode row count.
--- This hashes on the combined dimensions to get a deterministic, evenly-distributed sample.
-WHERE cityHash64(cluster_id, namespace, pod, node, metric_name) % 36 = 0
+WHERE cityHash64(cluster_id, namespace, pod, node) % 4 = 0
 CHSQL
+}
+
+insert_metric "cpu_usage"        15   70
+insert_metric "memory_usage"     200  600
+insert_metric "network_rx_bytes" 1000 49000
+insert_metric "network_tx_bytes" 500  24500
+insert_metric "disk_io_read"     100  4900
+insert_metric "disk_io_write"    50   2950
 
 log "  Metrics inserted."
 
@@ -635,49 +607,19 @@ log "  Traces inserted."
 # ── Costs: 30 days of daily cost records ─────────────────────────────────────
 log "  Inserting cost data (30 days)..."
 
-run_ch <<'CHSQL'
+# Insert cost data per workload to avoid ClickHouse CASE constant limitation
+insert_cost() {
+  local workload="$1" cpu_req="$2" mem_req="$3"
+  run_ch <<CHSQL
 INSERT INTO infrawhisper.costs
 SELECT
-    today() - n.number                                                AS date,
-    cluster_id,
-    tenant_id,
-    'production'                                                      AS namespace,
-    workload,
+    today() - n.number AS date,
+    cluster_id, tenant_id, 'production' AS namespace,
+    '${workload}' AS workload,
     resource_type,
-    -- requested: a base amount with small daily variance
-    CASE resource_type
-        WHEN 'cpu' THEN
-            CASE workload
-                WHEN 'api-server'     THEN 4.0  + (rand() % 10) / 10.0
-                WHEN 'web-frontend'   THEN 2.0  + (rand() % 10) / 10.0
-                WHEN 'auth-service'   THEN 2.0  + (rand() % 5)  / 10.0
-                WHEN 'payment-service'THEN 3.0  + (rand() % 8)  / 10.0
-                WHEN 'worker-pool'    THEN 8.0  + (rand() % 20) / 10.0
-                WHEN 'cache-redis'    THEN 1.0  + (rand() % 5)  / 10.0
-                WHEN 'db-postgres'    THEN 4.0  + (rand() % 10) / 10.0
-                WHEN 'monitoring'     THEN 1.0  + (rand() % 5)  / 10.0
-                ELSE 1.0
-            END
-        ELSE -- memory (GiB)
-            CASE workload
-                WHEN 'api-server'     THEN 8.0  + (rand() % 20) / 10.0
-                WHEN 'web-frontend'   THEN 4.0  + (rand() % 10) / 10.0
-                WHEN 'auth-service'   THEN 4.0  + (rand() % 10) / 10.0
-                WHEN 'payment-service'THEN 6.0  + (rand() % 15) / 10.0
-                WHEN 'worker-pool'    THEN 16.0 + (rand() % 30) / 10.0
-                WHEN 'cache-redis'    THEN 8.0  + (rand() % 10) / 10.0
-                WHEN 'db-postgres'    THEN 16.0 + (rand() % 20) / 10.0
-                WHEN 'monitoring'     THEN 2.0  + (rand() % 10) / 10.0
-                ELSE 2.0
-            END
-    END                                                               AS requested,
-    -- used: 30-70% of requested for some workloads (showing waste)
-    requested * (0.30 + (rand() % 40) / 100.0)                       AS used,
-    -- cost: $0.50 - $25 per workload per day
-    CASE resource_type
-        WHEN 'cpu' THEN requested * (2.5 + (rand() % 15) / 10.0)
-        ELSE            requested * (0.8 + (rand() % 10) / 10.0)
-    END                                                               AS cost_usd
+    IF(resource_type = 'cpu', ${cpu_req} + (rand() % 10) / 10.0, ${mem_req} + (rand() % 20) / 10.0) AS requested,
+    requested * (0.30 + (rand() % 40) / 100.0) AS used,
+    IF(resource_type = 'cpu', requested * (2.5 + (rand() % 15) / 10.0), requested * (0.8 + (rand() % 10) / 10.0)) AS cost_usd
 FROM numbers(30) AS n
 CROSS JOIN (
     SELECT '11111111-1111-4111-a111-111111111111' AS cluster_id, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' AS tenant_id
@@ -685,20 +627,19 @@ CROSS JOIN (
     UNION ALL SELECT '44444444-4444-4444-a444-444444444444', 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 ) AS clusters
 CROSS JOIN (
-    SELECT 'api-server' AS workload
-    UNION ALL SELECT 'web-frontend'
-    UNION ALL SELECT 'auth-service'
-    UNION ALL SELECT 'payment-service'
-    UNION ALL SELECT 'worker-pool'
-    UNION ALL SELECT 'cache-redis'
-    UNION ALL SELECT 'db-postgres'
-    UNION ALL SELECT 'monitoring'
-) AS workloads
-CROSS JOIN (
-    SELECT 'cpu' AS resource_type
-    UNION ALL SELECT 'memory'
+    SELECT 'cpu' AS resource_type UNION ALL SELECT 'memory'
 ) AS resources
 CHSQL
+}
+
+insert_cost "api-server"      4.0  8.0
+insert_cost "web-frontend"    2.0  4.0
+insert_cost "auth-service"    2.0  4.0
+insert_cost "payment-service" 3.0  6.0
+insert_cost "worker-pool"     8.0  16.0
+insert_cost "cache-redis"     1.0  8.0
+insert_cost "db-postgres"     4.0  16.0
+insert_cost "monitoring"      1.0  2.0
 
 log "  Cost data inserted."
 

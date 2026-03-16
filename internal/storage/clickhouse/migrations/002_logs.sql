@@ -14,5 +14,5 @@ CREATE TABLE IF NOT EXISTS infrawhisper.logs (
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMMDD(timestamp)
 ORDER BY (cluster_id, pod, timestamp)
-TTL timestamp + INTERVAL 7 DAY
+TTL toDateTime(timestamp) + INTERVAL 7 DAY
 SETTINGS index_granularity = 8192

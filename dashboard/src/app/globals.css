@@ -1,49 +1,13 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
 
-@theme {
-  /* Surface palette — carefully stepped for clear visual hierarchy */
-  --color-surface-root: #0a0b0e;
-  --color-surface-base: #101218;
-  --color-surface-raised: #161921;
-  --color-surface-overlay: #1c1f2a;
-  --color-surface-hover: #242836;
-
-  /* Text — WCAG AA compliant on dark surfaces */
-  --color-text-primary: #eef0f4;
-  --color-text-secondary: #a0a6b4;
-  --color-text-muted: #6c7382;
-  --color-text-dim: #4a5060;
-
-  /* Borders — visible but subtle */
-  --color-border-subtle: #1e2230;
-  --color-border-default: #282d3c;
-  --color-border-strong: #353b4e;
-
-  /* Accent — teal */
-  --color-accent: #22d3a7;
-  --color-accent-light: #5eead4;
-  --color-accent-dim: rgba(34, 211, 167, 0.12);
-  --color-accent-medium: rgba(34, 211, 167, 0.20);
-
-  /* Status */
-  --color-status-ok: #34d399;
-  --color-status-warn: #fbbf24;
-  --color-status-error: #f87171;
-  --color-status-info: #60a5fa;
-
-  /* Font */
-  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-}
-
 /* ─── Base ─── */
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
-  background: var(--color-surface-root);
-  color: var(--color-text-primary);
-  font-family: var(--font-sans);
+  background: #0a0b0f;
+  color: #e8eaef;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
@@ -51,20 +15,20 @@ body {
 
 /* ─── Focus ─── */
 .focus-ring:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid #2dd4a8;
   outline-offset: 2px;
 }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 100px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
 /* ─── Selection ─── */
 ::selection {
-  background: rgba(34, 211, 167, 0.25);
-  color: var(--color-text-primary);
+  background: rgba(45, 212, 168, 0.25);
+  color: #fff;
 }
 
 /* ─── Animations ─── */
@@ -72,27 +36,17 @@ body {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fade-scale {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
 
 .anim-fade-up { animation: fade-up 0.35s ease-out both; }
-.anim-fade-scale { animation: fade-scale 0.25s ease-out both; }
 .anim-shimmer {
-  background: linear-gradient(90deg, var(--color-surface-raised) 25%, var(--color-surface-overlay) 50%, var(--color-surface-raised) 75%);
+  background: linear-gradient(90deg, #15171e 25%, #1c1f28 50%, #15171e 75%);
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
 }
-
 .delay-1 { animation-delay: 50ms; }
 .delay-2 { animation-delay: 100ms; }
 .delay-3 { animation-delay: 150ms; }
